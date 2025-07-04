@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: fin-news-backend
+    runtime: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python nltk_setup.py
+    startCommand: uvicorn main:app --host=0.0.0.0 --port=10000
+    envVars:
+      - key: OPENAI_API_KEY
+        value: c358171e697af969bfd719d4df8a87437de5433dd6eb9ec779ece266c858f7e3

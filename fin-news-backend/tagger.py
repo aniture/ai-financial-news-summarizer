@@ -1,27 +1,13 @@
-# fin-news-backend/tagger.py
-import os
-import nltk
+# No NLTK needed; vaderSentiment bundles the lexicon
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-# Make sure NLTK looks in the Render path (or local default)
-NLTK_PATH = os.getenv("NLTK_DATA", "/opt/render/nltk_data")
-nltk.data.path.append(NLTK_PATH)
-
-# Ensure the VADER lexicon exists (no-op if already present)
-try:
-    nltk.data.find("sentiment/vader_lexicon")
-except LookupError:
-    os.makedirs(NLTK_PATH, exist_ok=True)
-    nltk.download("vader_lexicon", download_dir=NLTK_PATH)
-
-from nltk.sentiment import SentimentIntensityAnalyzer
-
-sentiment_analyzer = SentimentIntensityAnalyzer()
-
+_analyzer = SentimentIntensityAnalyzer()
 
 def analyze_sentiment(text: str) -> float:
-    return sentiment_analyzer.polarity_scores(text)["compound"]
-
+    """Return compound sentiment score (-1..1)."""
+    text = text or ""
+    return _analyzer.polarity_scores(text)["compound"]
 
 def extract_tags(text: str) -> list[str]:
-    # your existing tagging logic (placeholder)
+    # TODO: keep/replace with your real tag extraction
     return []

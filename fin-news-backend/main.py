@@ -12,7 +12,12 @@ NEWSAPI_BASE = "https://newsapi.org/v2"
 # Comma-separated list of allowed origins (Vercel URL, local dev, etc.)
 # e.g., "https://your-frontend.vercel.app,http://localhost:5173"
 ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "https://ai-financial-news-summarizer-fx36-pev9sru2n.vercel.app/" ,"http://localhost:5173").split(",") if o.strip()
+    o.strip()
+    for o in os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://ai-financial-news-summarizer-fx36-pev9sru2n.vercel.app,http://localhost:5173"
+    ).split(",")
+    if o.strip()
 ]
 
 # ---------- App ----------

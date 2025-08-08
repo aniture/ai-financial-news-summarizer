@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ai-finnews-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+    envVars:
+      - key: NEWSAPI_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://your-frontend.vercel.app

@@ -1,4 +1,6 @@
 # No NLTK needed; vaderSentiment bundles the lexicon
+print(">>> USING TAGGER: vaderSentiment build")
+
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 _analyzer = SentimentIntensityAnalyzer()

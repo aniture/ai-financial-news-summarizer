@@ -21,7 +21,22 @@ A sleek React + FastAPI web app that helps you summarize financial news, detect 
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started - Frontend
+
+### 1. Clone the Repository
+
+git clone https://github.com/yourusername/ai-financial-news-analyzer.git
+cd ai-financial-news-analyzer
+
+## 2. Install Frontend Dependencies
+npm install
+
+## 3. Start the React App
+npm start
+Runs at http://localhost:3000
+
+---
+## 🚀 Getting Started - Backend
 
 ### 1. Clone the Repository
 

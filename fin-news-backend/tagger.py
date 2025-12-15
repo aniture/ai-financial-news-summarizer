@@ -1,6 +1,12 @@
+import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-sentiment_analyzer = SentimentIntensityAnalyzer()
+# Ensure the vader_lexicon resource is available; download if missing.
+try:
+    sentiment_analyzer = SentimentIntensityAnalyzer()
+except LookupError:
+    nltk.download('vader_lexicon')
+    sentiment_analyzer = SentimentIntensityAnalyzer()
 
 tickers = {"AAPL", "GOOGL", "AMZN", "TSLA"}
 sectors = {"technology", "healthcare", "finance", "energy", "automotive"}

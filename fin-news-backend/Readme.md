@@ -36,7 +36,9 @@ pip install -r requirements.txt
 
 ## 4. Run FastAPI Server
 
-venv\Scripts\activate
+For mac - source venv/Scripts/activate 
+
+For Windows - venv\Scripts\activate
 
 uvicorn main:app --reload --port 8001
 Runs at http://127.0.0.1:8001

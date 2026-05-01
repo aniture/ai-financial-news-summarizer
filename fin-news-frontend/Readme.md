@@ -30,5 +30,5 @@ cd ai-financial-news-analyzer
 npm install
 
 ## 3. Start the React App
-npm start
+npm run dev
 Runs at http://localhost:3000

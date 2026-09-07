@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { mockApi } from "./lib/mockApi";
-
-function clsx(...parts) {
-  return parts.filter(Boolean).join(" ");
-}
+import { clsx } from "./lib/clsx";
+import { Button } from "./components/Button";
+import { Panel, PanelHeader, Row } from "./components/Panel";
 
 /* ---------- Signature: the tape ---------- */
 
@@ -61,7 +60,7 @@ function StatusBar() {
   });
 
   return (
-    <header className="border-b border-line">
+    <header className="sticky top-0 z-20 border-b border-line bg-bg/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <span className="text-amber">◆</span>
@@ -84,19 +83,10 @@ function StatusBar() {
 /* ---------- Readouts ---------- */
 
 const SENTIMENT = {
-  positive: { label: "POSITIVE", cls: "text-up", mark: "▲", bar: "bg-up" },
-  negative: { label: "NEGATIVE", cls: "text-down", mark: "▼", bar: "bg-down" },
-  neutral: { label: "NEUTRAL", cls: "text-flat", mark: "■", bar: "bg-flat" },
+  positive: { label: "POSITIVE", cls: "text-up", mark: "▲" },
+  negative: { label: "NEGATIVE", cls: "text-down", mark: "▼" },
+  neutral: { label: "NEUTRAL", cls: "text-flat", mark: "■" },
 };
-
-function Row({ k, children }) {
-  return (
-    <div className="flex gap-4 border-b border-line-soft py-2.5 last:border-b-0">
-      <span className="label w-24 shrink-0 pt-0.5">{k}</span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
 
 function Chip({ children }) {
   return (
@@ -105,6 +95,11 @@ function Chip({ children }) {
     </span>
   );
 }
+
+/* Platform-correct shortcut hint. */
+const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
+  ? "⌘"
+  : "Ctrl";
 
 /* ---------- App ---------- */
 
@@ -117,6 +112,7 @@ export default function App() {
   const [headlinesLoading, setHeadlinesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [quotes, setQuotes] = useState([]);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,7 +130,7 @@ export default function App() {
   }, []);
 
   async function handleAnalyze() {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || loading) return;
     setLoading(true);
     setSummary("");
     setAnalysis(null);
@@ -148,6 +144,18 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleClear() {
+    setInputText("");
+    setSummary("");
+    setAnalysis(null);
+  }
+
+  async function copySummary() {
+    await navigator.clipboard.writeText(summary);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
   }
 
   const filteredHeadlines = useMemo(() => {
@@ -182,42 +190,39 @@ export default function App() {
         <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
           {/* ---- Analyser ---- */}
           <section className="min-w-0 space-y-6">
-            <div className="panel">
-              <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-                <span className="label">article</span>
-                <span className="label">
-                  {inputText.length === 0 ? "empty" : `${inputText.length} chars`}
-                </span>
-              </div>
+            <Panel active={Boolean(inputText)}>
+              <PanelHeader
+                label="article"
+                right={
+                  <span className="label">
+                    {inputText.length === 0 ? "empty" : `${inputText.length} chars`}
+                  </span>
+                }
+              />
 
               <textarea
                 rows={9}
                 placeholder="Paste a story here, or pick one from the wire."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => {
+                  // ⌘/Ctrl+Enter submits, the way a terminal composer would.
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") handleAnalyze();
+                }}
                 className="prose-read w-full resize-y bg-transparent p-4 outline-none placeholder:font-mono placeholder:text-[13px] placeholder:text-mute/70"
               />
 
               <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
-                <button
-                  onClick={() => {
-                    setInputText("");
-                    setSummary("");
-                    setAnalysis(null);
-                  }}
-                  disabled={!inputText}
-                  className="label transition-colors hover:text-ink disabled:opacity-30"
-                >
+                <Button variant="ghost" size="sm" onClick={handleClear} disabled={!inputText}>
                   Clear
-                </button>
+                </Button>
 
-                <button
-                  onClick={handleAnalyze}
-                  disabled={loading || !inputText.trim()}
-                  className="bg-amber px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#14100a] transition-[filter] hover:brightness-110 disabled:border disabled:border-line disabled:bg-transparent disabled:text-mute"
-                >
-                  {loading ? "Analyzing…" : "Analyze"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <span className="label hidden sm:inline">{MOD} ↵</span>
+                  <Button onClick={handleAnalyze} disabled={loading || !inputText.trim()}>
+                    {loading ? "Analyzing…" : "Analyze"}
+                  </Button>
+                </div>
               </div>
 
               {loading && (
@@ -225,91 +230,81 @@ export default function App() {
                   <div className="scan h-px w-1/4 bg-amber" />
                 </div>
               )}
-            </div>
+            </Panel>
 
             {/* ---- Readout ---- */}
-            {!hasResult && !loading && (
-              <div className="panel">
-                <div className="border-b border-line px-4 py-2.5">
-                  <span className="label">readout</span>
-                </div>
-                <div className="px-4 py-2">
-                  <Row k="summary">
-                    <span className="text-[12px] text-mute">
-                      A three-sentence recap of the story.
-                    </span>
-                  </Row>
-                  <Row k="tickers">
-                    <span className="text-[12px] text-mute">
-                      Symbols named in the text.
-                    </span>
-                  </Row>
-                  <Row k="sectors">
-                    <span className="text-[12px] text-mute">
-                      Sectors the story touches.
-                    </span>
-                  </Row>
-                </div>
-              </div>
-            )}
-
-            {hasResult && (
-              <div className="panel">
-                <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-                  <span className="label">readout</span>
-                  {sentiment && (
+            <Panel active={hasResult}>
+              <PanelHeader
+                label="readout"
+                right={
+                  sentiment ? (
                     <span className={clsx("text-[12px] font-medium", sentiment.cls)}>
                       {sentiment.mark} {sentiment.label}
                     </span>
-                  )}
-                </div>
+                  ) : (
+                    <span className="label">awaiting input</span>
+                  )
+                }
+              />
 
-                <div className="px-4 py-2">
-                  {summary && (
-                    <Row k="summary">
+              <div className="px-4 py-2">
+                <Row k="summary">
+                  {summary ? (
+                    <div className="space-y-2">
                       <p className="prose-read">{summary}</p>
-                    </Row>
+                      <Button variant="ghost" size="sm" className="px-0" onClick={copySummary}>
+                        {copied ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-[12px] text-mute">
+                      A three-sentence recap of the story.
+                    </span>
                   )}
+                </Row>
 
-                  {analysis && (
-                    <>
-                      <Row k="tickers">
-                        {analysis.tags.tickers.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {analysis.tags.tickers.map((t) => (
-                              <Chip key={t}>{t}</Chip>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-[12px] text-mute">none detected</span>
-                        )}
-                      </Row>
-
-                      <Row k="sectors">
-                        {analysis.tags.sectors.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {analysis.tags.sectors.map((s) => (
-                              <Chip key={s}>{s}</Chip>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-[12px] text-mute">none detected</span>
-                        )}
-                      </Row>
-                    </>
+                <Row k="tickers">
+                  {analysis ? (
+                    analysis.tags.tickers.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {analysis.tags.tickers.map((t) => (
+                          <Chip key={t}>{t}</Chip>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[12px] text-mute">none detected</span>
+                    )
+                  ) : (
+                    <span className="text-[12px] text-mute">Symbols named in the text.</span>
                   )}
-                </div>
+                </Row>
+
+                <Row k="sectors">
+                  {analysis ? (
+                    analysis.tags.sectors.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {analysis.tags.sectors.map((s) => (
+                          <Chip key={s}>{s}</Chip>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[12px] text-mute">none detected</span>
+                    )
+                  ) : (
+                    <span className="text-[12px] text-mute">Sectors the story touches.</span>
+                  )}
+                </Row>
               </div>
-            )}
+            </Panel>
           </section>
 
           {/* ---- Wire feed ---- */}
           <section className="min-w-0">
-            <div className="panel flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-                <span className="label">the wire</span>
-                <span className="label">{filteredHeadlines.length} stories</span>
-              </div>
+            <Panel className="flex h-full flex-col">
+              <PanelHeader
+                label="the wire"
+                right={<span className="label">{filteredHeadlines.length} stories</span>}
+              />
 
               <div className="border-b border-line px-4 py-2.5">
                 <input
@@ -340,7 +335,7 @@ export default function App() {
                         );
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
-                      className="group block w-full border-b border-line-soft px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-panel-2"
+                      className="group block w-full border-b border-line-soft px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-panel-2 focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-amber"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] uppercase tracking-[0.14em] text-amber">
@@ -362,16 +357,18 @@ export default function App() {
                     <p className="text-[12px] text-mute">
                       Nothing on the wire matches “{searchQuery}”.
                     </p>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-3 text-amber"
                       onClick={() => setSearchQuery("")}
-                      className="label mt-3 text-amber hover:brightness-110"
                     >
                       Clear filter
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
-            </div>
+            </Panel>
           </section>
         </div>
       </main>

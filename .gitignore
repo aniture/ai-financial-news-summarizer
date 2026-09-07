@@ -1,0 +1,23 @@
+# Node
+node_modules
+dist
+*.log
+.npm
+
+# Python
+__pycache__
+*.pyc
+venv
+.venv
+env
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Tooling
+.DS_Store
+.vercel
+.vscode
+.idea

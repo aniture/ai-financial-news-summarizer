@@ -1,90 +1,112 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Sparkles,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Search,
-  X,
-  Brain,
-  Newspaper,
-  Tag,
-  ArrowRight,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { mockApi } from "./lib/mockApi";
 
 function clsx(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
-function AuroraBackground({ children }) {
+/* ---------- Signature: the tape ---------- */
+
+function Tape({ quotes }) {
+  if (!quotes.length) return null;
+  // Rendered twice so the -50% keyframe loops seamlessly.
+  const run = [...quotes, ...quotes];
+
   return (
-    <div className="relative isolate min-h-screen overflow-hidden">
-      <div className="aurora-grid pointer-events-none absolute inset-0 opacity-20" />
-      <div className="pointer-events-none absolute inset-0">
-        <div className="aurora-blob aurora-blob-1" />
-        <div className="aurora-blob aurora-blob-2" />
-        <div className="aurora-blob aurora-blob-3" />
+    <div className="tape border-b border-line bg-panel overflow-hidden">
+      <div className="tape-track py-2">
+        {run.map((q, i) => {
+          const dir = q.change > 0 ? "up" : q.change < 0 ? "down" : "flat";
+          return (
+            <span
+              key={`${q.symbol}-${i}`}
+              className="inline-flex items-baseline gap-2 px-5 text-[12px] tabular-nums"
+              // The duplicated half is decorative; keep it out of the a11y tree.
+              aria-hidden={i >= quotes.length ? "true" : undefined}
+            >
+              <span className="font-medium text-ink">{q.symbol}</span>
+              <span className="text-mute">{q.last.toFixed(2)}</span>
+              <span
+                className={clsx(
+                  dir === "up" && "text-up",
+                  dir === "down" && "text-down",
+                  dir === "flat" && "text-flat"
+                )}
+              >
+                {q.change > 0 ? "▲" : q.change < 0 ? "▼" : "■"}{" "}
+                {Math.abs(q.change).toFixed(2)}%
+              </span>
+            </span>
+          );
+        })}
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--color-bg)_75%)]" />
-      <div className="relative z-10">{children}</div>
     </div>
   );
 }
 
-function SpotlightCard({ children, className, onClick }) {
-  const ref = useRef(null);
-  function onMove(e) {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-    el.style.setProperty("--my", `${e.clientY - rect.top}px`);
-  }
+/* ---------- Chrome ---------- */
+
+function StatusBar() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const clock = now.toLocaleTimeString("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
   return (
-    <div
-      ref={ref}
-      onMouseMove={onMove}
-      onClick={onClick}
-      className={clsx("spotlight overflow-hidden", onClick && "cursor-pointer", className)}
-    >
-      {children}
+    <header className="border-b border-line">
+      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-3">
+          <span className="text-amber">◆</span>
+          <span className="text-sm font-semibold tracking-tight text-ink">TAPE READER</span>
+          <span className="label hidden sm:inline">news desk</span>
+        </div>
+
+        <div className="flex items-center gap-5">
+          <span className="flex items-center gap-2">
+            <span className="pip inline-block h-1.5 w-1.5 rounded-full bg-up" />
+            <span className="label">demo feed</span>
+          </span>
+          <span className="text-[12px] tabular-nums text-mute">{clock} UTC</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ---------- Readouts ---------- */
+
+const SENTIMENT = {
+  positive: { label: "POSITIVE", cls: "text-up", mark: "▲", bar: "bg-up" },
+  negative: { label: "NEGATIVE", cls: "text-down", mark: "▼", bar: "bg-down" },
+  neutral: { label: "NEUTRAL", cls: "text-flat", mark: "■", bar: "bg-flat" },
+};
+
+function Row({ k, children }) {
+  return (
+    <div className="flex gap-4 border-b border-line-soft py-2.5 last:border-b-0">
+      <span className="label w-24 shrink-0 pt-0.5">{k}</span>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
-  );
-}
-
-function ShimmerButton({ children, ...props }) {
-  return (
-    <button {...props} className={clsx("shimmer", props.className)}>
-      <span className="shimmer-inner">{children}</span>
-    </button>
-  );
-}
-
-function SentimentBadge({ value }) {
-  const map = {
-    positive: { icon: TrendingUp, label: "Positive", color: "text-emerald-300", ring: "ring-emerald-400/30", bg: "bg-emerald-500/10" },
-    negative: { icon: TrendingDown, label: "Negative", color: "text-rose-300", ring: "ring-rose-400/30", bg: "bg-rose-500/10" },
-    neutral: { icon: Minus, label: "Neutral", color: "text-slate-300", ring: "ring-slate-400/30", bg: "bg-slate-500/10" },
-  };
-  const v = map[value] ?? map.neutral;
-  const Icon = v.icon;
-  return (
-    <span className={clsx("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ring-1", v.color, v.ring, v.bg)}>
-      <Icon className="h-3.5 w-3.5" />
-      {v.label}
-    </span>
   );
 }
 
 function Chip({ children }) {
   return (
-    <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-slate-200">
+    <span className="inline-flex items-center border border-line bg-panel-2 px-1.5 py-0.5 text-[11px] text-ink">
       {children}
     </span>
   );
 }
+
+/* ---------- App ---------- */
 
 export default function App() {
   const [inputText, setInputText] = useState("");
@@ -94,6 +116,7 @@ export default function App() {
   const [headlines, setHeadlines] = useState([]);
   const [headlinesLoading, setHeadlinesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [quotes, setQuotes] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +124,9 @@ export default function App() {
       if (cancelled) return;
       setHeadlines(data.articles ?? []);
       setHeadlinesLoading(false);
+    });
+    mockApi.tape().then((data) => {
+      if (!cancelled) setQuotes(data.quotes ?? []);
     });
     return () => {
       cancelled = true;
@@ -127,240 +153,237 @@ export default function App() {
   const filteredHeadlines = useMemo(() => {
     const q = searchQuery.toLowerCase();
     if (!q) return headlines;
-    return headlines.filter((a) => `${a.title} ${a.description ?? ""}`.toLowerCase().includes(q));
+    return headlines.filter((a) =>
+      `${a.title} ${a.description ?? ""}`.toLowerCase().includes(q)
+    );
   }, [headlines, searchQuery]);
 
+  const sentiment = analysis ? SENTIMENT[analysis.sentiment] ?? SENTIMENT.neutral : null;
+  const hasResult = Boolean(summary || analysis);
+
   return (
-    <AuroraBackground>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-24">
-        {/* Header */}
-        <motion.header
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-12 text-center"
-        >
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            AI-powered analysis
-          </div>
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
-            Read the markets,{" "}
-            <span className="gradient-text">in seconds</span>
+    <div className="min-h-screen">
+      <Tape quotes={quotes} />
+      <StatusBar />
+
+      <main className="mx-auto max-w-[1400px] px-4 pb-20 pt-10 sm:px-6">
+        {/* Hero — kept short. The work happens below it. */}
+        <div className="max-w-2xl">
+          <div className="label">summary · sentiment · exposure</div>
+          <h1 className="mt-4 text-3xl font-semibold leading-[1.15] tracking-tight text-ink sm:text-[2.5rem]">
+            Summarize the wire.
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base sm:text-lg text-slate-300">
-            Paste any financial news article — get an instant summary, sentiment, and the
+          <p className="prose-read mt-4 text-mute">
+            Paste any market story and get the recap, the direction it reads, and the
             tickers and sectors it touches.
           </p>
-        </motion.header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Left: Analyze */}
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-3 space-y-6"
-          >
-            <div className="rounded-2xl glass p-5 sm:p-6">
-              <div className="mb-3 flex items-center gap-2 text-sm text-slate-300">
-                <Brain className="h-4 w-4 text-sky-300" />
-                <span>Article</span>
-              </div>
-              <textarea
-                rows={8}
-                placeholder="Paste your financial news article here, or click any headline below to populate it…"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className="w-full resize-y rounded-xl border border-white/10 bg-slate-950/50 p-4 text-base leading-relaxed text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-sky-500/50"
-              />
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <div className="text-xs text-slate-400">
-                  {inputText.length === 0 ? "Empty" : `${inputText.length} characters`}
-                </div>
-                <ShimmerButton
-                  onClick={handleAnalyze}
-                  disabled={loading || !inputText.trim()}
-                >
-                  {loading ? (
-                    <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                      Analyzing…
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      Analyze
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </ShimmerButton>
-              </div>
-            </div>
-
-            <AnimatePresence mode="wait">
-              {summary && (
-                <motion.div
-                  key="summary"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.35 }}
-                  className="rounded-2xl glass p-5 sm:p-6"
-                >
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
-                    <Sparkles className="h-4 w-4 text-amber-300" />
-                    Summary
-                  </div>
-                  <p className="text-base leading-relaxed text-slate-100">{summary}</p>
-                </motion.div>
-              )}
-
-              {analysis && (
-                <motion.div
-                  key="analysis"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.35, delay: 0.05 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                >
-                  <div className="rounded-2xl glass p-5">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
-                      <TrendingUp className="h-4 w-4 text-sky-300" />
-                      Sentiment
-                    </div>
-                    <SentimentBadge value={analysis.sentiment} />
-                  </div>
-
-                  <div className="rounded-2xl glass p-5">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-200">
-                      <Tag className="h-4 w-4 text-cyan-300" />
-                      Tags detected
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs uppercase tracking-wider text-slate-400">Tickers</span>
-                        {analysis.tags.tickers.length > 0 ? (
-                          analysis.tags.tickers.map((t) => <Chip key={t}>{t}</Chip>)
-                        ) : (
-                          <span className="text-xs text-slate-500">None detected</span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs uppercase tracking-wider text-slate-400">Sectors</span>
-                        {analysis.tags.sectors.length > 0 ? (
-                          analysis.tags.sectors.map((s) => <Chip key={s}>{s}</Chip>)
-                        ) : (
-                          <span className="text-xs text-slate-500">None detected</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.section>
-
-          {/* Right: Headlines */}
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
-                <Newspaper className="h-4 w-4 text-cyan-300" />
-                Live headlines
-              </div>
-              <span className="text-xs text-slate-400">{filteredHeadlines.length} stories</span>
-            </div>
-
-            <div className="mb-4 flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search headlines…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/40 py-2 pl-9 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-500/50"
-                />
-              </div>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 hover:bg-white/10"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="scroll-fade max-h-[640px] overflow-y-auto pr-1 space-y-3">
-              {headlinesLoading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl glass p-3 animate-pulse">
-                      <div className="flex gap-3">
-                        <div className="h-16 w-24 rounded-lg bg-white/5" />
-                        <div className="flex-1 space-y-2 py-1">
-                          <div className="h-3 w-3/4 rounded bg-white/10" />
-                          <div className="h-3 w-1/2 rounded bg-white/10" />
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                : filteredHeadlines.map((article, i) => (
-                    <motion.div
-                      key={`${article.title}-${i}`}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25, delay: Math.min(i * 0.03, 0.2) }}
-                    >
-                      <SpotlightCard
-                        className="p-3"
-                        onClick={() => {
-                          setInputText(`${article.title}. ${article.description ?? ""}`.trim());
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                      >
-                        <div className="flex gap-3">
-                          {article.urlToImage && (
-                            <img
-                              src={article.urlToImage}
-                              alt=""
-                              className="h-16 w-24 flex-none rounded-lg object-cover"
-                              loading="lazy"
-                            />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="line-clamp-2 text-sm font-medium text-slate-100">
-                              {article.title}
-                            </div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-400">
-                              <span>{article.source}</span>
-                              <span>·</span>
-                              <span className="text-slate-500">tap to analyze</span>
-                            </div>
-                          </div>
-                        </div>
-                      </SpotlightCard>
-                    </motion.div>
-                  ))}
-              {!headlinesLoading && filteredHeadlines.length === 0 && (
-                <div className="rounded-2xl glass p-6 text-center text-sm text-slate-400">
-                  No headlines match “{searchQuery}”.
-                </div>
-              )}
-            </div>
-          </motion.section>
         </div>
 
-        <footer className="mt-16 text-center text-xs text-slate-500">
-          Demo mode · sentiment heuristic + curated headlines · no live API calls
-        </footer>
-      </div>
-    </AuroraBackground>
+        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
+          {/* ---- Analyser ---- */}
+          <section className="min-w-0 space-y-6">
+            <div className="panel">
+              <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+                <span className="label">article</span>
+                <span className="label">
+                  {inputText.length === 0 ? "empty" : `${inputText.length} chars`}
+                </span>
+              </div>
+
+              <textarea
+                rows={9}
+                placeholder="Paste a story here, or pick one from the wire."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="prose-read w-full resize-y bg-transparent p-4 outline-none placeholder:font-mono placeholder:text-[13px] placeholder:text-mute/70"
+              />
+
+              <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
+                <button
+                  onClick={() => {
+                    setInputText("");
+                    setSummary("");
+                    setAnalysis(null);
+                  }}
+                  disabled={!inputText}
+                  className="label transition-colors hover:text-ink disabled:opacity-30"
+                >
+                  Clear
+                </button>
+
+                <button
+                  onClick={handleAnalyze}
+                  disabled={loading || !inputText.trim()}
+                  className="bg-amber px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#14100a] transition-[filter] hover:brightness-110 disabled:border disabled:border-line disabled:bg-transparent disabled:text-mute"
+                >
+                  {loading ? "Analyzing…" : "Analyze"}
+                </button>
+              </div>
+
+              {loading && (
+                <div className="h-px w-full overflow-hidden bg-line">
+                  <div className="scan h-px w-1/4 bg-amber" />
+                </div>
+              )}
+            </div>
+
+            {/* ---- Readout ---- */}
+            {!hasResult && !loading && (
+              <div className="panel">
+                <div className="border-b border-line px-4 py-2.5">
+                  <span className="label">readout</span>
+                </div>
+                <div className="px-4 py-2">
+                  <Row k="summary">
+                    <span className="text-[12px] text-mute">
+                      A three-sentence recap of the story.
+                    </span>
+                  </Row>
+                  <Row k="tickers">
+                    <span className="text-[12px] text-mute">
+                      Symbols named in the text.
+                    </span>
+                  </Row>
+                  <Row k="sectors">
+                    <span className="text-[12px] text-mute">
+                      Sectors the story touches.
+                    </span>
+                  </Row>
+                </div>
+              </div>
+            )}
+
+            {hasResult && (
+              <div className="panel">
+                <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+                  <span className="label">readout</span>
+                  {sentiment && (
+                    <span className={clsx("text-[12px] font-medium", sentiment.cls)}>
+                      {sentiment.mark} {sentiment.label}
+                    </span>
+                  )}
+                </div>
+
+                <div className="px-4 py-2">
+                  {summary && (
+                    <Row k="summary">
+                      <p className="prose-read">{summary}</p>
+                    </Row>
+                  )}
+
+                  {analysis && (
+                    <>
+                      <Row k="tickers">
+                        {analysis.tags.tickers.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {analysis.tags.tickers.map((t) => (
+                              <Chip key={t}>{t}</Chip>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[12px] text-mute">none detected</span>
+                        )}
+                      </Row>
+
+                      <Row k="sectors">
+                        {analysis.tags.sectors.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {analysis.tags.sectors.map((s) => (
+                              <Chip key={s}>{s}</Chip>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[12px] text-mute">none detected</span>
+                        )}
+                      </Row>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ---- Wire feed ---- */}
+          <section className="min-w-0">
+            <div className="panel flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+                <span className="label">the wire</span>
+                <span className="label">{filteredHeadlines.length} stories</span>
+              </div>
+
+              <div className="border-b border-line px-4 py-2.5">
+                <input
+                  type="text"
+                  placeholder="Filter headlines"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-mute"
+                />
+              </div>
+
+              <div className="scroll-fade max-h-[34rem] overflow-y-auto">
+                {headlinesLoading &&
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="border-b border-line-soft px-4 py-3">
+                      <div className="h-2 w-3/4 bg-line" />
+                      <div className="mt-2 h-2 w-1/3 bg-line-soft" />
+                    </div>
+                  ))}
+
+                {!headlinesLoading &&
+                  filteredHeadlines.map((article, i) => (
+                    <button
+                      key={`${article.title}-${i}`}
+                      onClick={() => {
+                        setInputText(
+                          `${article.title}. ${article.description ?? ""}`.trim()
+                        );
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="group block w-full border-b border-line-soft px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-panel-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-[0.14em] text-amber">
+                          {article.source}
+                        </span>
+                        <span className="h-px flex-1 bg-line" />
+                        <span className="label opacity-0 transition-opacity group-hover:opacity-100">
+                          load
+                        </span>
+                      </div>
+                      <div className="prose-read mt-1.5 text-[15px] leading-snug">
+                        {article.title}
+                      </div>
+                    </button>
+                  ))}
+
+                {!headlinesLoading && filteredHeadlines.length === 0 && (
+                  <div className="px-4 py-10 text-center">
+                    <p className="text-[12px] text-mute">
+                      Nothing on the wire matches “{searchQuery}”.
+                    </p>
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="label mt-3 text-amber hover:brightness-110"
+                    >
+                      Clear filter
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+          <p className="label">
+            demo build · sentiment is a keyword heuristic · quotes and headlines are fixed
+            sample data
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

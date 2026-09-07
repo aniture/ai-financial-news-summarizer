@@ -90,6 +90,23 @@ const MOCK_HEADLINES = [
   },
 ];
 
+// Quote strip for the ticker tape. Fixed values, not random: the tape is a
+// demo surface, and numbers that reshuffle on every render read as noise.
+const MOCK_TAPE = [
+  { symbol: "NVDA", last: 1064.22, change: 4.81 },
+  { symbol: "AAPL", last: 241.16, change: 1.24 },
+  { symbol: "TSLA", last: 198.4, change: -6.32 },
+  { symbol: "MSFT", last: 468.9, change: 0.42 },
+  { symbol: "GOOGL", last: 191.55, change: -0.87 },
+  { symbol: "AMZN", last: 214.07, change: 2.15 },
+  { symbol: "META", last: 602.31, change: 3.06 },
+  { symbol: "JPM", last: 238.74, change: 0.91 },
+  { symbol: "WMT", last: 88.19, change: 1.58 },
+  { symbol: "V", last: 312.66, change: -0.34 },
+  { symbol: "BRK.B", last: 471.02, change: 0.12 },
+  { symbol: "MA", last: 528.44, change: -1.19 },
+];
+
 function delay(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -154,5 +171,9 @@ export const mockApi = {
   async headlines() {
     await delay(300);
     return { articles: MOCK_HEADLINES };
+  },
+
+  async tape() {
+    return { quotes: MOCK_TAPE };
   },
 };

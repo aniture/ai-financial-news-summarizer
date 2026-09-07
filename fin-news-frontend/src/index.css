@@ -1,24 +1,46 @@
 @import "tailwindcss";
 
+/*
+  Design tokens.
+
+  The product reads market copy and returns a position on it, so the interface
+  borrows from the surface analysts already read all day: a terminal. Amber
+  phosphor for chrome, semantic green/red reserved strictly for direction, and
+  a hard split between the two typefaces —
+
+    IBM Plex Mono  = the machine: labels, tickers, readouts, headings
+    Newsreader     = the human: article text and generated summaries
+*/
+
 @theme {
-  --color-bg: hsl(224 42% 6%);
-  --color-bg-elev: hsl(224 32% 10%);
-  --color-ink: hsl(220 14% 96%);
-  --color-mute: hsl(216 12% 60%);
-  --color-brand: hsl(214 92% 60%);
-  --color-brand-2: hsl(178 95% 50%);
-  --color-accent: hsl(38 95% 55%);
-  --color-positive: hsl(142 71% 45%);
-  --color-negative: hsl(0 85% 60%);
-  --color-neutral: hsl(216 12% 60%);
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-display: "Sora", "Inter", sans-serif;
+  --color-bg: #08090b;
+  --color-panel: #101216;
+  --color-panel-2: #161920;
+  --color-line: #1e2228;
+  --color-line-soft: #171a20;
+  --color-ink: #e6e3dc;
+  --color-mute: #7c838e;
+
+  /* Chrome. Amber is brand and structure, never a data colour. */
+  --color-amber: #f5a623;
+  --color-amber-dim: #8a5c11;
+
+  /* Direction. These three are the only colours that encode meaning. */
+  --color-up: #00c46a;
+  --color-down: #ff4d5e;
+  --color-flat: #7c838e;
+
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-sans: "IBM Plex Mono", ui-monospace, monospace;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   background-color: var(--color-bg);
   color: var(--color-ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   min-height: 100vh;
 }
 
@@ -27,144 +49,122 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Utility shorthands used in the app */
-.glass {
-  background: color-mix(in oklab, white 4%, transparent);
-  border: 1px solid color-mix(in oklab, white 10%, transparent);
-  backdrop-filter: blur(14px);
+::selection {
+  background: var(--color-amber);
+  color: #14100a;
 }
 
-.gradient-text {
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+:focus-visible {
+  outline: 1px solid var(--color-amber);
+  outline-offset: 2px;
 }
 
-/* ---- Aurora background ---- */
-.aurora-grid {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 80%);
-}
-.aurora-blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(90px);
-  opacity: 0.5;
-  mix-blend-mode: screen;
-}
-.aurora-blob-1 {
-  top: -10%;
-  left: 8%;
-  width: 38rem;
-  height: 38rem;
-  background: radial-gradient(circle at 30% 30%, hsl(214 92% 60% / 0.65), transparent 65%);
-  animation: aurora-1 18s ease-in-out infinite;
-}
-.aurora-blob-2 {
-  top: 0;
-  right: -4%;
-  width: 34rem;
-  height: 34rem;
-  background: radial-gradient(circle at 70% 30%, hsl(178 95% 50% / 0.55), transparent 65%);
-  animation: aurora-2 22s ease-in-out infinite;
-}
-.aurora-blob-3 {
-  bottom: -12%;
-  left: 35%;
-  width: 42rem;
-  height: 42rem;
-  background: radial-gradient(circle at 50% 50%, hsl(38 95% 55% / 0.32), transparent 70%);
-  animation: aurora-3 26s ease-in-out infinite;
-}
-@keyframes aurora-1 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(6%,4%,0) scale(1.08);} }
-@keyframes aurora-2 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-5%,3%,0) scale(1.06);} }
-@keyframes aurora-3 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(3%,-4%,0) scale(1.1);} }
+/* ---- Terminal primitives ---- */
 
-/* ---- Spotlight card ---- */
-.spotlight {
-  --mx: 50%;
-  --my: 50%;
-  position: relative;
-  border-radius: 1rem;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0.01));
-  transition: border-color 200ms ease;
+/* A panel is a flat lit surface with a hairline edge. No blur, no gradient. */
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
 }
-.spotlight:hover { border-color: rgb(255 255 255 / 0.18); }
-.spotlight::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: radial-gradient(420px circle at var(--mx) var(--my), hsl(214 92% 60% / 0.28), transparent 40%);
-  opacity: 0;
-  transition: opacity 200ms ease;
-  pointer-events: none;
-}
-.spotlight:hover::before { opacity: 1; }
 
-/* ---- Shimmer button ---- */
-.shimmer {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  border-radius: 9999px;
+.panel-inset {
+  background: var(--color-panel-2);
+  border: 1px solid var(--color-line-soft);
+}
+
+/* The interface's structural voice. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+/* Reading surface — article text and generated summaries only. */
+.prose-read {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--color-ink);
+}
+
+/* ---- Signature: the tape ---- */
+
+/*
+  A continuous marquee. The track holds the quote list twice, so translating
+  exactly -50% loops without a visible seam.
+*/
+.tape-track {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: 2.75rem;
-  padding: 0 1.5rem;
-  font-weight: 500;
-  color: white;
+  white-space: nowrap;
+  animation: tape-run 62s linear infinite;
+  will-change: transform;
+}
+
+.tape:hover .tape-track {
+  animation-play-state: paused;
+}
+
+@keyframes tape-run {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Live pip on the status strip. */
+@keyframes pip {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+.pip {
+  animation: pip 2s ease-in-out infinite;
+}
+
+/* Scanning bar while the analyser runs. */
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+.scan {
+  animation: scan 1.4s ease-in-out infinite;
+}
+
+/* The wire feed: softened top/bottom edges and a scrollbar that stays in palette. */
+.scroll-fade {
+  mask-image: linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+.scroll-fade::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-fade::-webkit-scrollbar-track {
   background: transparent;
 }
-.shimmer::before {
-  content: "";
-  position: absolute;
-  inset: -200%;
-  z-index: 0;
-  background: conic-gradient(from 0deg, transparent 0deg, hsl(214 92% 60%) 60deg, transparent 120deg);
-  animation: shimmer-spin 2.6s linear infinite;
-}
-.shimmer::after {
-  content: "";
-  position: absolute;
-  inset: -200%;
-  z-index: 0;
-  background: conic-gradient(from 180deg, transparent 0deg, hsl(178 95% 50%) 60deg, transparent 120deg);
-  animation: shimmer-spin 3.4s linear infinite reverse;
-  opacity: 0.55;
-}
-.shimmer > .shimmer-inner {
-  position: absolute;
-  inset: 1px;
-  z-index: 1;
-  border-radius: 9999px;
-  background: rgb(15 23 42);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0 1.4rem;
-  transition: background 200ms ease;
-}
-.shimmer:hover > .shimmer-inner { background: rgb(20 30 55); }
-.shimmer:disabled { opacity: 0.55; cursor: not-allowed; }
-.shimmer:disabled::before, .shimmer:disabled::after { animation-play-state: paused; }
-@keyframes shimmer-spin { to { transform: rotate(360deg); } }
-
-/* Custom scrollbar for the news list */
-.scroll-fade {
-  mask-image: linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent);
+.scroll-fade::-webkit-scrollbar-thumb {
+  background: var(--color-line);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aurora-blob, .shimmer::before, .shimmer::after { animation: none !important; }
+  .tape-track,
+  .pip,
+  .scan {
+    animation: none !important;
+  }
 }

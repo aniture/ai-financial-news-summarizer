@@ -2,6 +2,18 @@
 
 A sleek React + FastAPI web app that helps you summarize financial news, detect sentiment, and extract tickers and sectors using AI. It also shows live financial headlines via NewsAPI.
 
+## 🔗 Live demo
+
+[![Live demo](https://img.shields.io/badge/Live%20demo-ai--financial--news--summarizer.vercel.app-F5A623?style=for-the-badge&logo=vercel&logoColor=white)](https://ai-financial-news-summarizer.vercel.app)
+
+**<https://ai-financial-news-summarizer.vercel.app>**
+
+The deployed build is the frontend on its own. Summarisation, sentiment and tag
+extraction run as an in-browser stand-in for the FastAPI service, and the
+headlines are a fixed sample set rather than a live NewsAPI feed — so the demo
+needs no keys and costs nothing to run. Start the Python backend as described
+below to use the real models.
+
 ## ✨ Features
 
 - 💡 Paste or click headlines to analyze financial news using AI

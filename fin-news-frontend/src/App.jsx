@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { mockApi } from "./lib/mockApi";
+import { api } from "./lib/api";
 import { clsx } from "./lib/clsx";
 import { Button } from "./components/Button";
 import { Panel, PanelHeader, Row } from "./components/Panel";
@@ -45,7 +45,7 @@ function Tape({ quotes }) {
 
 /* ---------- Chrome ---------- */
 
-function StatusBar() {
+function StatusBar({ live }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -70,8 +70,10 @@ function StatusBar() {
 
         <div className="flex items-center gap-5">
           <span className="flex items-center gap-2">
-            <span className="pip inline-block h-1.5 w-1.5 rounded-full bg-up" />
-            <span className="label">demo feed</span>
+            <span
+              className={clsx("pip inline-block h-1.5 w-1.5 rounded-full", live ? "bg-up" : "bg-amber")}
+            />
+            <span className="label">{live ? "live feed" : "demo feed"}</span>
           </span>
           <span className="text-[12px] tabular-nums text-mute">{clock} UTC</span>
         </div>
@@ -113,15 +115,19 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quotes, setQuotes] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [live, setLive] = useState(false);
+  const [error, setError] = useState("");
+  const [loadingArticle, setLoadingArticle] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    mockApi.headlines().then((data) => {
+    api.headlines().then((data) => {
       if (cancelled) return;
       setHeadlines(data.articles ?? []);
+      setLive(data.live);
       setHeadlinesLoading(false);
     });
-    mockApi.tape().then((data) => {
+    api.tape().then((data) => {
       if (!cancelled) setQuotes(data.quotes ?? []);
     });
     return () => {
@@ -134,13 +140,16 @@ export default function App() {
     setLoading(true);
     setSummary("");
     setAnalysis(null);
+    setError("");
     try {
       const [sumData, tagData] = await Promise.all([
-        mockApi.summarize(inputText),
-        mockApi.tag(inputText),
+        api.summarize(inputText),
+        api.tag(inputText),
       ]);
       setSummary(sumData.summary);
       setAnalysis(tagData);
+    } catch {
+      setError("The analysis service didn't respond. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -150,6 +159,26 @@ export default function App() {
     setInputText("");
     setSummary("");
     setAnalysis(null);
+    setError("");
+  }
+
+  // Load a headline into the composer. Live stories carry a URL, so try for the
+  // full body first (the feed's description is only a teaser) and fall back to
+  // the teaser if the publisher won't serve it.
+  async function loadArticle(article) {
+    const teaser = `${article.title}. ${article.description ?? ""}`.trim();
+    setInputText(teaser);
+    setSummary("");
+    setAnalysis(null);
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!article.url) return;
+
+    setLoadingArticle(true);
+    const body = await api.extract(article.url);
+    setLoadingArticle(false);
+    // Only replace the teaser if the user hasn't started editing it meanwhile.
+    if (body) setInputText((cur) => (cur === teaser ? `${article.title}\n\n${body}` : cur));
   }
 
   async function copySummary() {
@@ -172,7 +201,7 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <Tape quotes={quotes} />
-      <StatusBar />
+      <StatusBar live={live} />
 
       <main className="mx-auto max-w-[1400px] px-4 pb-20 pt-10 sm:px-6">
         {/* Hero — kept short. The work happens below it. */}
@@ -195,7 +224,11 @@ export default function App() {
                 label="article"
                 right={
                   <span className="label">
-                    {inputText.length === 0 ? "empty" : `${inputText.length} chars`}
+                    {loadingArticle
+                      ? "fetching article…"
+                      : inputText.length === 0
+                        ? "empty"
+                        : `${inputText.length} chars`}
                   </span>
                 }
               />
@@ -233,6 +266,12 @@ export default function App() {
             </Panel>
 
             {/* ---- Readout ---- */}
+            {error && (
+              <p role="alert" className="border border-down px-4 py-2.5 text-[12px] text-down">
+                {error}
+              </p>
+            )}
+
             <Panel active={hasResult}>
               <PanelHeader
                 label="readout"
@@ -329,12 +368,7 @@ export default function App() {
                   filteredHeadlines.map((article, i) => (
                     <button
                       key={`${article.title}-${i}`}
-                      onClick={() => {
-                        setInputText(
-                          `${article.title}. ${article.description ?? ""}`.trim()
-                        );
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
+                      onClick={() => loadArticle(article)}
                       className="group block w-full border-b border-line-soft px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-panel-2 focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-amber"
                     >
                       <div className="flex items-center gap-2">
@@ -376,8 +410,9 @@ export default function App() {
       <footer className="border-t border-line">
         <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
           <p className="label">
-            demo build · sentiment is a keyword heuristic · quotes and headlines are fixed
-            sample data
+            {live
+              ? "live headlines and quotes · sentiment is VADER, a lexicon score · not investment advice"
+              : "demo build · sentiment is a keyword heuristic · quotes and headlines are fixed sample data"}
           </p>
         </div>
       </footer>

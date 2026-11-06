@@ -8,73 +8,66 @@ A sleek React + FastAPI web app that helps you summarize financial news, detect 
 
 **<https://ai-financial-news-summarizer.vercel.app>**
 
-The deployed build is the frontend on its own. Summarisation, sentiment and tag
-extraction run as an in-browser stand-in for the FastAPI service, and the
-headlines are a fixed sample set rather than a live NewsAPI feed — so the demo
-needs no keys and costs nothing to run. Start the Python backend as described
-below to use the real models.
+The deployed build is the frontend on its own (no `VITE_API_URL`). Summarisation,
+sentiment and tag extraction run as an in-browser stand-in for the FastAPI
+service, and the headlines and quotes are a fixed sample set — so the demo needs
+no keys and costs nothing to run. Point the frontend at the backend, as described
+below, for live news and the real models. The status bar reads `live feed` or
+`demo feed` so you can tell which you are looking at.
 
 ## ✨ Features
 
-- 💡 Paste or click headlines to analyze financial news using AI
-- 🧠 Summary, sentiment & tag extraction from a Python backend (FastAPI)
-- 📰 Real-time top business headlines (NewsAPI)
-- 🌗 Light/Dark mode toggle with modern UI
-- 🎨 Animated cards, interactive button with spinner
-- 🖼️ Image thumbnails for headlines with hover glow
+- Paste a story, or pick one from the wire, and get a summary, sentiment, and the tickers and sectors it names
+- Live business headlines (NewsAPI) and a live quote tape (Finnhub), cached server-side
+- Loading a live headline fetches the full article body, falling back to the feed's teaser
+- Summaries from gpt-oss-20b via Groq; sentiment from NLTK VADER
 
----
+## 🛠️ Stack
 
-## 🛠️ Technologies Used
+- **Frontend:** React 19, Vite, Tailwind 4 (`fin-news-frontend/`)
+- **Backend:** FastAPI (`fin-news-backend/`)
+- **Providers:** Groq (summaries, free tier), NewsAPI (headlines), Finnhub (quotes)
 
-- **Frontend:** React, CSS3
-- **Backend:** FastAPI (Python)
-- **APIs:** OpenAI (for NLP), NewsAPI (for headlines)
+## 🚀 Running locally
 
----
+### Backend
 
-## 🚀 Getting Started - Frontend
-
-### 1. Clone the Repository
-
-git clone https://github.com/yourusername/ai-financial-news-analyzer.git
-cd ai-financial-news-analyzer
-
-## 2. Install Frontend Dependencies
-npm install
-
-## 3. Start the React App
-npm start
-Runs at http://localhost:3000
-
----
-## 🚀 Getting Started - Backend
-
-### 1. Clone the Repository
-
-git clone https://github.com/yourusername/ai-financial-news-analyzer.git
-cd ai-financial-news-analyzer
-
-## 2. Navigate to Backend Directory
-cd backend
-
-## 3. Install Python Dependencies
+```bash
+cd fin-news-backend
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-## 4. Run FastAPI Server
-
-venv\Scripts\activate
-
+cp .env.example .env                              # then fill in the three keys
 uvicorn main:app --reload --port 8001
-Runs at http://127.0.0.1:8001
+```
 
-🔑 API Keys Required
-OpenAI API key → For summarization & tagging
+| Variable | Purpose |
+| --- | --- |
+| `GROQ_API_KEY` | summaries (free key from console.groq.com) |
+| `NEWSAPI_KEY` | headlines |
+| `FINNHUB_API_KEY` | quote tape |
+| `ALLOWED_ORIGINS` | comma-separated origins allowed by CORS |
 
-NewsAPI key → For fetching live headlines
+A missing key makes that endpoint answer `503`; the frontend then shows the sample
+feed for headlines and quotes, and an error for summaries. Keys live only in `.env`
+(gitignored) locally and in the Render dashboard when deployed — never in the repo.
 
-Store them securely inside:
+### Frontend
 
-.env (for backend)
+```bash
+cd fin-news-frontend
+cp .env.example .env      # VITE_API_URL=http://127.0.0.1:8001
+npm install
+npm run dev               # http://localhost:5173
+```
 
-Replace key string in frontend (App.jsx line with apiKey=...)
+Omit `VITE_API_URL` to run the keyless demo.
+
+## 🔌 API
+
+| Route | |
+| --- | --- |
+| `POST /summarize` `{content}` | `{summary}` |
+| `POST /tag` `{content}` | `{sentiment, tags: {tickers, sectors}}` |
+| `GET /headlines` | `{articles: [{title, description, source, url, publishedAt}]}` |
+| `GET /quotes` | `{quotes: [{symbol, last, change}]}` |
+| `POST /extract` `{url}` | `{content}` — only URLs previously served by `/headlines` |

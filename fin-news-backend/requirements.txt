@@ -1,4 +1,7 @@
-fastapi
-openai
-nltk
-uvicorn
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+openai>=1.40,<3
+nltk>=3.9,<4
+httpx>=0.27,<1
+python-dotenv>=1.0,<2
+trafilatura>=2.0,<3
